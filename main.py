@@ -71,6 +71,32 @@ class Generator(nn.Module):
 		return img
 #---------------------------------------------------------------------------------------
 
+
+class ChamferDistance(nn.Module):	
+	
+	def __init__():
+		super(ChamferDistance, self).__init__()
+		
+	def batch_pairwise_dist(a,b):
+		x,y = a,b
+		bs, num_points, points_dim = x.size()
+		xx = torch.bmm(x, x.transpose(2,1))
+		yy = torch.bmm(y, y.transpose(2,1))
+		zz = torch.bmm(x, y.transpose(2,1))
+		#diag_ind = torch.arange(0, num_points).type(torch.cuda.LongTensor)
+		diag_ind = torch.arange(0, num_points).long().cuda()
+		rx = xx[:, diag_ind, diag_ind].unsqueeze(1).expand_as(xx)
+		ry = yy[:, diag_ind, diag_ind].unsqueeze(1).expand_as(yy)
+		P = (rx.transpose(2,1) + ry - 2*zz)
+		return P
+		
+	def forward(x, y):
+		x = torch.transpose(x, 1, 2)
+		y = torch.transpose(y, 1, 2)
+		d = batch_pairwise_dist(x,y)
+		return (torch.min(d, dim=2)[0], torch.min(d, dim=1)[0])
+
+
 ########################################################################################
 ## loss function (needs to be defined)
 chamfer_dist = ChamferDistance()
