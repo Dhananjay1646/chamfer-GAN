@@ -1,8 +1,11 @@
+# credits: https://github.com/chrdiller/pyTorchChamferDistance for chamfer distance
+
 from torch import nn
 import torch.nn.functional as F
 import torch
 import os
 import argparse
+from chamfer_distance import ChamferDistance
 
 ##########################################################
 ## init stuff and arguments
@@ -70,7 +73,11 @@ class Generator(nn.Module):
 
 ########################################################################################
 ## loss function (needs to be defined)
-loss_function = None#?
+chamfer_dist = ChamferDistance()
+def loss_function(x, y):
+	dist1, dist2 = chamfer_dist(x, y)
+	loss = torch.mean(dist1) + torch.mean(dist2)
+	return loss
 #---------------------------------------------------------------------------------------
 
 ########################################################################################
@@ -138,7 +145,7 @@ for epoch in range(opt.n_epochs):
 		generated_images = generator(z)
 
 		# update loss on the generated images (needs to be updated)
-		generator_loss = loss_function(generated_images, valid_im)
+		generator_loss = loss_function(generated_images, real_images)
 
 		generator_loss.backward()
 		generator_optimizer.step()
