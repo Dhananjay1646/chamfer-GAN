@@ -24,7 +24,6 @@ print(opt)
 ##########################################################
 
 ##########################################################
-## check cuda
 cuda = True if torch.cuda.is_available() else False
 ##########################################################
 
@@ -87,9 +86,29 @@ generator.apply(weights_init_normal)
 ########################################################################################
 
 ##########################################################################################
+# Configure data loader
+os.makedirs("data/mnist", exist_ok=True)
+dataloader = torch.utils.data.DataLoader(
+	datasets.MNIST(
+		"data/mnist",
+		train=True,
+		download=True,
+		transform=transforms.Compose(
+			[transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]
+		),
+	),
+	batch_size=opt.batch_size,
+	shuffle=True,
+)
+##########################################################################################
+
+##########################################################################################
 ## define optimizer
 generator_optimizer = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 ##########################################################################################
+
+# define variables
+Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
 #############################
@@ -98,13 +117,13 @@ generator_optimizer = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=
 
 for epoch in range(opt.n_epochs):
 	# the following line should change on how the dataset we want to define
-	for images in dataloader:
+	for 1, (images,_) in enumerate(dataloader):
 		# ground truths
-		valid_im = Variable(Tensor(imgs.shape[0], 1).fill_(1.0), requires_grad=False)
-		fake_im = Variable(Tensor(imgs.shape[0], 1).fill_(0.0), requires_grad=False)
+		valid_im = Variable(Tensor(images.shape[0], 1).fill_(1.0), requires_grad=False)
+		fake_im = Variable(Tensor(images.shape[0], 1).fill_(0.0), requires_grad=False)
 
 		# input images (need to define here)
-		real_images = None#?
+		real_images = Variable(images.type(Tensor))
 
 		#-----------------------
 		# train the generator
@@ -113,7 +132,7 @@ for epoch in range(opt.n_epochs):
 		generator_optimizer.zero_grad()
 
 		# noise input to generator function
-		z = Variable(Tensor(np.random.normal(0, 1, (imgs.shape[0], opt.latent_dim))))
+		z = Variable(Tensor(np.random.normal(0, 1, (images.shape[0], opt.latent_dim))))
 
 		# generate images
 		generated_images = generator(z)
@@ -126,9 +145,9 @@ for epoch in range(opt.n_epochs):
 
 		print(
 			"[Epoch %d/%d] [Batch %d/%d] [G loss: %f]"
-            % (epoch, opt.n_epochs, i, len(dataloader), g_loss.item())
-            )
-		
+			% (epoch, opt.n_epochs, i, len(dataloader), g_loss.item())
+			)
+
 		batches_done = epoch * len(dataloader) + i
-        if batches_done % opt.sample_interval == 0:
-            save_image(gen_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
+		if batches_done % opt.sample_interval == 0:
+			save_image(generated_images.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
